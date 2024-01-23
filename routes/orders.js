@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDB } = require('../utils/mongoUtil');
 const { ObjectId } = require('mongodb');
+const { authenticateToken } = require('../utils/middlewares');
 
 const COLLECTION = 'orders'
 const router = express.Router();
@@ -9,28 +10,30 @@ router.get("/", authenticateToken, async function (req, res) {
   // We want to retrieve the documents from the collections
   // and convert it to an array of JSON objects
 
-  const restaurants = await getDB().collection(COLLECTION)
+  const orders = await getDB().collection(COLLECTION)
     .find().toArray();
 
   res.json({
-    restaurants
+    orders
   })
 });
 
 router.post("/", authenticateToken, async function (req, res) {
   // anything retrieved is from req.body is a string, not number
-  const {orderDate = new Date(), totalAmount, status="Pending" } = req.body
+  // status
+  // 0: Pending 1: In Progress 2:Delivered 3: Canceled
+  let {restaurantId, createDate = new Date(), updateDate=new Date(), totalAmount, status="0" } = req.body
 
-  if (!totalAmount || !status) {
+  if (!totalAmount) {
     res.status(400);
     res.json({
-      "error": "Please enter totalAmount, status"
+      "error": "Please enter orderDate, totalAmount, status"
     })
     return; // end the function
   }
-
+  restaurantId = new ObjectId(restaurantId)
   const results = await getDB().collection(COLLECTION).insertOne({
-    orderDate, totalAmount, status
+    restaurantId, createDate, updateDate, totalAmount, status
   })
 
   res.json({
@@ -53,7 +56,7 @@ router.delete("/:id", authenticateToken, async function (req, res) {
 router.put("/:id", authenticateToken, async function (req, res) {
   // status
   // 0: Pending 1: In Progress 2:Delivered 3: Canceled
-  const {orderDate = new Date(), totalAmount, status="0" } = req.body
+  const {updateDate = new Date(), totalAmount, status="0" } = req.body
 
   if (!totalAmount || !status) {
     res.status(400);
@@ -67,29 +70,39 @@ router.put("/:id", authenticateToken, async function (req, res) {
     "_id": new ObjectId(req.params.id)
   }, {
     "$set": {
-      orderDate, totalAmount, status
+      updateDate, totalAmount, status
     }
   });
 
   res.json(results);
 })
 
-router.post("/order/:orderId/item", authenticateToken, async function (req, res) {
+router.post("/:orderId/item", authenticateToken, async function (req, res) {
   const orderId = req.params.orderId;
-  const { name, description="", price, category, status=0 } = req.body;
-  if (!name || !price || !category) {
+  let { name, description="", price, category, status=0 } = req.body;
+  price = Number(price)
+  if (!name || !category) {
     res.status(400);
     res.json({
       "error": "Please enter name, price, category"
     })
     return; // end the function
   }
+
+  if (!price || price <= 0) {
+    res.status(400);
+    res.json({
+      "error": "Price must greater than 0!"
+    })
+    return; // end the function
+  }
+
   const response = await getDB().collection(COLLECTION)
     .updateOne({
       "_id": new ObjectId(orderId)
     }, {
       "$push": {
-        "menus": {
+        "items": {
           '_id': new ObjectId(),
           name, description, price, category, status
         }
@@ -100,13 +113,13 @@ router.post("/order/:orderId/item", authenticateToken, async function (req, res)
   })
 })
 
-router.delete("/order/:orderId/item:itemId", authenticateToken, async function (req, res) {
+router.delete("/:orderId/item/:itemId", authenticateToken, async function (req, res) {
   const { orderId, itemId } = req.params;
   const results = await getDB().collection(COLLECTION).updateOne({
-    "_id": new ObjectId(restaurantId)
+    "_id": new ObjectId(orderId)
   }, {
     '$pull': {
-      "menus": {
+      "items": {
         "_id": new ObjectId(itemId)
       }
     }
@@ -116,8 +129,7 @@ router.delete("/order/:orderId/item:itemId", authenticateToken, async function (
   })
 })
 
-router.put('/order/:orderId/item:itemId', authenticateToken, async function (req, res) {
-
+router.put('/:orderId/item/:itemId', authenticateToken, async function (req, res) {
   const { orderId, itemId } = req.params;
   const { name, description, price, category } = req.body;
   const results = await getDB().collection(COLLECTION)

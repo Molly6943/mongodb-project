@@ -20,7 +20,6 @@ async function main() {
   app.use('/users', userRoutes);
   app.use('/restaurants', restaurantsRoutes);
   app.use('/orders', ordersRoutes);
-
 }
 main()
 

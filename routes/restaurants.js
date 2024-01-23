@@ -8,7 +8,6 @@ const router = express.Router();
 router.get("/", async function (req, res) {
   // We want to retrieve the documents from the collections
   // and convert it to an array of JSON objects
-
   const restaurants = await getDB().collection(COLLECTION)
     .find().toArray();
 
@@ -73,7 +72,7 @@ router.put("/:id", async function (req, res) {
   res.json(results);
 })
 
-router.post("/restaurant/:restaurantId/menu", async function (req, res) {
+router.post("/:restaurantId/menu", async function (req, res) {
   const restaurantId = req.params.restaurantId;
   const { name, description="", price, category, status=0 } = req.body;
   if (!name || !price || !category) {
@@ -99,7 +98,7 @@ router.post("/restaurant/:restaurantId/menu", async function (req, res) {
   })
 })
 
-router.delete("/restaurant/:restaurantId/menu/:menuId", async function (req, res) {
+router.delete("/:restaurantId/menu/:menuId", async function (req, res) {
   const { restaurantId, menuId } = req.params;
   const results = await getDB().collection(COLLECTION).updateOne({
     "_id": new ObjectId(restaurantId)
@@ -115,8 +114,7 @@ router.delete("/restaurant/:restaurantId/menu/:menuId", async function (req, res
   })
 })
 
-router.put('/restaurant/:restaurantId/menu/:menuId', async function (req, res) {
-
+router.put('/:restaurantId/menu/:menuId', async function (req, res) {
   const { restaurantId, menuId } = req.params;
   const { name, description, price, category } = req.body;
   const results = await getDB().collection(COLLECTION)
