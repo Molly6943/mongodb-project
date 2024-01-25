@@ -59,7 +59,6 @@ router.post('/login', async function (req, res) {
 })
 
 router.get('/profile', authenticateToken, async function (req, res) {
-
     // find the user by their _id
     const user = await getDB().collection("users").findOne({
         '_id': new ObjectId(req.data._id)
@@ -72,8 +71,23 @@ router.get('/profile', authenticateToken, async function (req, res) {
         'message': 'Success',
         'user': user
     })
-
 })
+
+router.get('/logout', authenticateToken, async function (req, res) {
+    try {
+      const authHeader = req.headers['authorization']; // get the session cookie from request header
+      if (!authHeader) return res.sendStatus(204); // No content
+    
+      res.setHeader('Clear-Site-Data', '"authorization"');
+      res.status(200).json({ message: 'You are logged out!' });
+    } catch (err) {
+      res.status(500).json({
+        status: 'error',
+        message: 'Internal Server Error',
+      });
+    }
+    res.end();
+  })
 
 // make sure to export the router object
 // so that other files, like index.js, can use it
