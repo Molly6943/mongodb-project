@@ -8,13 +8,17 @@ const router = express.Router();
 router.get("/", async function (req, res) {
   // We want to retrieve the documents from the collections
   // and convert it to an array of JSON objects
+  const keywords = req.query.keywords
+  const condition = keywords ? { name: { $regex: new RegExp(keywords), $options: "i" } } : {};
   const restaurants = await getDB().collection(COLLECTION)
-    .find().toArray();
+    .find(condition).toArray();
 
   res.json({
     restaurants
   })
 });
+
+
 
 router.post("/", async function (req, res) {
   // anything retrieved is from req.body is a string, not number
